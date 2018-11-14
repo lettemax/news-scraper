@@ -1,0 +1,341 @@
+From a86a0628a049dbe9cf0cc4e083fc25458770d68d Mon Sep 17 00:00:00 2001
+From: Louis Heimel <louisheimel1@gmail.com>
+Date: Tue, 13 Nov 2018 20:57:14 -0600
+Subject: [PATCH] return data directly after inserted into db
+
+---
+ public/app.js | 82 ++++++++++++++++++++++++++++-----------------------
+ server.js     | 75 +++++++++++++++++++++++++---------------------
+ 2 files changed, 86 insertions(+), 71 deletions(-)
+
+diff --git a/public/app.js b/public/app.js
+index f788f27..909d90a 100644
+--- a/public/app.js
++++ b/public/app.js
+@@ -1,37 +1,45 @@
+-$(document).on("click", ".scrape-new", function() {
+-    // Empty the article-container div
+-    $(".article-container").empty();
+-    // First scrape
+-    $.get("/scrape", function (data) {
+-        // log data
+-        // console.log(data);
+-    }).then(function() {
+-        // Grab the articles as a json
+-        $.getJSON("/articles", function(data) {
+-            // If we get data, then hide alert div
+-            $(".alert-h4").text("Scraping may take 15-20 seconds");
+-            // Declare article titles array
+-            var titles = [];
+-            // For each one
+-            for (var i = 0; i < data.length; i++) {
+-                // log
+-                console.log("phew")
+-                // If it's not a duplicate
+-                if (!titles.includes(data[i].title)) {
+-                    // Add the title to titles array
+-                    titles.push(data[i].title);
+-                    // Save properties to variables b/c having trouble with them
+-                    var link = data[i].link;
+-                    var img = data[i].img;
+-                    var id = data[i]._id;
+-                    var title = data[i].title;
+-                    // Display the apropos information on the page
+-                    $(".article-container").append("<p style='background-color:pink; padding: 10px; font-size: 20px'><a href="
+-                    + link + " data-id='" + id + "'><img style='width: 50%; height: 50%; padding: 10px'src=" + img + "><br />" + title + "</a>"
+-                    + "<br /><br /><button class='save btn btn-light'>Save Article</button></p>");
+-                }
+-            }
+-        });
+-    });
+-})
+-  
+\ No newline at end of file
++$(document).on('click', '.scrape-new', function() {
++  // Empty the article-container div
++  $('.article-container').empty();
++  // First scrape
++  $.get('/scrape', function(data) {
++    // log data
++
++    console.log(data);
++    return data;
++  }).then(function(data) {
++    // Grab the articles as a json
++    // If we get data, then hide alert div
++    $('.alert-h4').text('Scraping may take 15-20 seconds');
++    // Declare article titles array
++    var titles = [];
++    // For each one
++    for (var i = 0; i < data.length; i++) {
++      // log
++      console.log('phew');
++      // If it's not a duplicate
++      if (!titles.includes(data[i].title)) {
++        // Add the title to titles array
++        titles.push(data[i].title);
++        // Save properties to variables b/c having trouble with them
++        var link = data[i].link;
++        var img = data[i].img;
++        var id = data[i]._id;
++        var title = data[i].title;
++        // Display the apropos information on the page
++        $('.article-container').append(
++          "<p style='background-color:pink; padding: 10px; font-size: 20px'><a href=" +
++            link +
++            " data-id='" +
++            id +
++            "'><img style='width: 50%; height: 50%; padding: 10px'src=" +
++            img +
++            '><br />' +
++            title +
++            '</a>' +
++            "<br /><br /><button class='save btn btn-light'>Save Article</button></p>",
++        );
++      }
++    }
++  });
++});
+diff --git a/server.js b/server.js
+index d9dda0e..9d97374 100644
+--- a/server.js
++++ b/server.js
+@@ -1,15 +1,15 @@
+-var express = require("express");
+-var logger = require("morgan");
+-var mongoose = require("mongoose");
++var express = require('express');
++var logger = require('morgan');
++var mongoose = require('mongoose');
+ 
+ // Our scraping tools
+ // Axios is a promised-based http library, similar to jQuery's Ajax method
+ // It works on the client and on the server
+-var axios = require("axios");
+-var cheerio = require("cheerio");
++var axios = require('axios');
++var cheerio = require('cheerio');
+ 
+ // Require all models
+-var db = require("./models");
++var db = require('./models');
+ 
+ var PORT = process.env.PORT || 3000;
+ 
+@@ -19,59 +19,67 @@ var app = express();
+ // Configure middleware
+ 
+ // Use morgan logger for logging requests
+-app.use(logger("dev"));
++app.use(logger('dev'));
+ // Parse request body as JSON
+-app.use(express.urlencoded({ extended: true }));
++app.use(express.urlencoded({extended: true}));
+ app.use(express.json());
+ // Make public a static folder
+-app.use(express.static("public"));
++app.use(express.static('public'));
+ 
+ // Connect to the Mongo DB
+-mongoose.connect("mongodb://localhost/mongoHeadlines", { useNewUrlParser: true });
++mongoose.connect(
++  'mongodb://localhost/mongoHeadlines',
++  {useNewUrlParser: true},
++);
+ 
+ // Routes
+ 
+ // A GET route for scraping the LiveKindly website
+-app.get("/scrape", function(req, res) {
++app.get('/scrape', function(req, res) {
+   // First, we grab the body of the html with axios
+-  axios.get("https://www.livekindly.co/").then(function(response) {
++  axios.get('https://www.livekindly.co/').then(function(response) {
+     // Then, we load that into cheerio and save it to $ for a shorthand selector
+     var $ = cheerio.load(response.data);
+ 
+     // Now, we grab every h2 within an article tag, and do the following:
+-    $(".td-image-wrap").each(function(i, element) {
++    var articles = [];
++    $('.td-image-wrap').each(function(i, element) {
+       // Save an empty result object
+       var result = {};
+       // Add the text, href and summary of every article, and save them as properties of the result object
+-      result.link = $(this)
+-        .attr("href");
+-      result.title = $(this)
+-        .attr("title");
++      result.link = $(this).attr('href');
++      result.title = $(this).attr('title');
+       // Get text containing img src
+-      var img = $(this).children("span").attr("style");
++      var img = $(this)
++        .children('span')
++        .attr('style');
+       // Dissect src
+-      img = img.split("(")[1];
+-      img = img.split(")")[0];
++      img = img.split('(')[1];
++      img = img.split(')')[0];
+       // Set result img property
+       result.img = img;
+       // Create a new Article using the `result` object built from scraping
+-      db.Article.create(result)
+-      .then(function(dbArticle) {
+-        // View the added result in the console
+-        console.log(dbArticle);
+-      })
+-      .catch(function(err) {
+-        // If an error occurred, log it
+-        console.log(err);
+-      });
++      const newArticle = db.Article.create(result)
++        .then(function(dbArticle) {
++          // View the added result in the console
++          console.log(dbArticle);
++          return dbArticle;
++        })
++        .catch(function(err) {
++          // If an error occurred, log it
++          console.log(err);
++        });
++      articles.push(newArticle);
+     });
+-  })
++    Promise.all(articles).then(data => {
++      res.json(data);
++    });
++  });
+   // Send a message to the client
+-  res.send("Scrape Complete");
+ });
+ 
+ // Route for getting all Articles from the db
+-app.get("/articles", function(req, res) {
++app.get('/articles', function(req, res) {
+   // Grab every document in the Articles collection
+   db.Article.find({})
+     .then(function(dbArticle) {
+@@ -84,8 +92,7 @@ app.get("/articles", function(req, res) {
+     });
+ });
+ 
+-
+ // Start the server
+ app.listen(PORT, function() {
+-  console.log("App running on port " + PORT + "!");
++  console.log('App running on port ' + PORT + '!');
+ });
+-- 
+2.17.1
+
+From 33196a3573354b9949e87a03e3767cb9a96f9e81 Mon Sep 17 00:00:00 2001
+From: Louis Heimel <louisheimel1@gmail.com>
+Date: Tue, 13 Nov 2018 21:09:24 -0600
+Subject: [PATCH] merge
+
+---
+ public/app.js | 91 +++++++++++++++++++++++++++------------------------
+ 1 file changed, 48 insertions(+), 43 deletions(-)
+
+diff --git a/public/app.js b/public/app.js
+index 909d90a..646df07 100644
+--- a/public/app.js
++++ b/public/app.js
+@@ -1,45 +1,50 @@
+-$(document).on('click', '.scrape-new', function() {
+-  // Empty the article-container div
+-  $('.article-container').empty();
+-  // First scrape
+-  $.get('/scrape', function(data) {
+-    // log data
++const renderData = function(data) {
+ 
+-    console.log(data);
+-    return data;
+-  }).then(function(data) {
+-    // Grab the articles as a json
+-    // If we get data, then hide alert div
+-    $('.alert-h4').text('Scraping may take 15-20 seconds');
+-    // Declare article titles array
+-    var titles = [];
+-    // For each one
+-    for (var i = 0; i < data.length; i++) {
+-      // log
+-      console.log('phew');
+-      // If it's not a duplicate
+-      if (!titles.includes(data[i].title)) {
+-        // Add the title to titles array
+-        titles.push(data[i].title);
+-        // Save properties to variables b/c having trouble with them
+-        var link = data[i].link;
+-        var img = data[i].img;
+-        var id = data[i]._id;
+-        var title = data[i].title;
+-        // Display the apropos information on the page
+-        $('.article-container').append(
+-          "<p style='background-color:pink; padding: 10px; font-size: 20px'><a href=" +
+-            link +
+-            " data-id='" +
+-            id +
+-            "'><img style='width: 50%; height: 50%; padding: 10px'src=" +
+-            img +
+-            '><br />' +
+-            title +
+-            '</a>' +
+-            "<br /><br /><button class='save btn btn-light'>Save Article</button></p>",
+-        );
++      // Declare article titles array
++      var titles = [];
++      // For each one
++      for (var i = 0; i < data.length; i++) {
++        // log
++        console.log('phew');
++        // If it's not a duplicate
++        if (!titles.includes(data[i].title)) {
++          // Add the title to titles array
++          titles.push(data[i].title);
++          // Save properties to variables b/c having trouble with them
++          var link = data[i].link;
++          var img = data[i].img;
++          var id = data[i]._id;
++          var title = data[i].title;
++          // Display the apropos information on the page
++          $('.article-container').append(
++            "<p style='background-color:pink; padding: 10px; font-size: 20px'><a href=" +
++              link +
++              " data-id='" +
++              id +
++              "'><img style='width: 50%; height: 50%; padding: 10px'src=" +
++              img +
++              '><br />' +
++              title +
++              '</a>' +
++              "<br /><br /><button class='save btn btn-light'>Save Article</button></p>",
++          );
++        }
+       }
+-    }
+-  });
+-});
++    };
++$(document).ready(function() {
++  $.get('/articles', renderData);
++  $(document).on('click', '.scrape-new', function() {
++    // Empty the article-container div
++    $('.article-container').empty();
++    // First scrape
++      // Grab the articles as a json
++      // If we get data, then hide alert div
++      $('.alert-h4').text('Scraping may take 15-20 seconds');
++    $.get('/scrape', function(data) {
++      // log data
++      // console.log(data);
++      return data;
++    }).then(renderData);
++  })
++})
++
+-- 
+2.17.1
+
