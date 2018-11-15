@@ -94,13 +94,11 @@ $(document).ready(function() {
             console.log(data)
             $('.articles-available').empty();
             if (data[0].comment.length > 0){
-                alert("if")
                 data[0].comment.forEach(v => {
                     $('.articles-available').append($(`<li class='list-group-item'>${v.text}<button type='button' class='btn btn-danger btn-sm float-right btn-deletenote' data='${v._id}'>X</button></li>`));
                 })
             }
             else {
-                alert("else")
                 $('.articles-available').append($(`<li class='list-group-item'>No notes for this article yet</li>`));
                 console.log("Second ran!")
             }
