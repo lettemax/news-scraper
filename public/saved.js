@@ -112,6 +112,8 @@ $(document).ready(function() {
     // $('.btn-deletenote').click(function (event) {})
     $(document).on('click', '.btn-deletenote', function (){
         event.preventDefault();
+        // Remove note
+        $(this).parent().remove();
         console.log($(this).attr("data"))
         const id = $(this).attr("data");
         console.log(id);
