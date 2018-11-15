@@ -15,17 +15,15 @@ After scraping:
 
 ![news-scraper](2.png)
 
-To search a song: node liri.js spotify-t
+Viewing saved articles:
 
 ![news-scraper](3.png)
 
-To do a preset search read from a txt file: node liri.js do-what-it-says
-
-example:
+Commenting on a saved article:
 
 ![news-scraper](4.png)
 
-example:
+Viewing an article's comments:
 
 ![news-scraper](5.png)
 
